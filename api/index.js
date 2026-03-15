@@ -114,6 +114,14 @@ app.use("/workshops", workshopRoutes);
 app.use("/timers", timerRoutes);
 app.use("/admin", adminRoutes);
 
+app.get("/debug", (req, res) => {
+  res.json({ 
+    message: "API is running", 
+    version: "1.0.1 - Fixed Routing",
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
 });
