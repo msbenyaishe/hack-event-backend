@@ -1,0 +1,225 @@
+const pool = require("../config/db");
+
+
+// CREATE EVENT
+exports.createEvent = async (req, res) => {
+
+  try {
+
+    const {
+      name,
+      event_date,
+      status,
+      max_leaders,
+      max_team_members
+    } = req.body;
+
+    const logo = req.file ? req.file.filename : null;
+
+    if (status === 'current') {
+        await pool.query("UPDATE events SET status='finished' WHERE status='current'");
+    }
+
+    const query = `
+      INSERT INTO events
+      (name, logo, event_date, status, max_leaders, max_team_members)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    await pool.query(query, [
+      name,
+      logo,
+      event_date,
+      status,
+      max_leaders,
+      max_team_members
+    ]);
+
+    res.json({ message: "Event created successfully" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+
+};
+
+
+// GET ALL EVENTS
+exports.getEvents = async (req, res) => {
+
+  try {
+
+    const [rows] = await pool.query(
+      "SELECT * FROM events ORDER BY created_at DESC"
+    );
+
+    res.json(rows);
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+};
+
+
+// GET SINGLE EVENT
+exports.getEvent = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      "SELECT * FROM events WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    res.json(rows[0]);
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+};
+
+
+// UPDATE EVENT
+exports.updateEvent = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const {
+      name,
+      event_date,
+      status,
+      max_leaders,
+      max_team_members
+    } = req.body;
+
+    let logo = null;
+
+    if (req.file) {
+      logo = req.file.filename;
+    }
+    
+    if (status === 'current') {
+        await pool.query("UPDATE events SET status='finished' WHERE status='current' AND id != ?", [id]);
+    }
+
+    let query;
+    let params;
+
+    if (logo) {
+
+      query = `
+        UPDATE events
+        SET name=?, logo=?, event_date=?, status=?, max_leaders=?, max_team_members=?
+        WHERE id=?
+      `;
+
+      params = [
+        name,
+        logo,
+        event_date,
+        status,
+        max_leaders,
+        max_team_members,
+        id
+      ];
+
+    } else {
+
+      query = `
+        UPDATE events
+        SET name=?, event_date=?, status=?, max_leaders=?, max_team_members=?
+        WHERE id=?
+      `;
+
+      params = [
+        name,
+        event_date,
+        status,
+        max_leaders,
+        max_team_members,
+        id
+      ];
+
+    }
+
+    await pool.query(query, params);
+
+    res.json({ message: "Event updated" });
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+};
+
+
+// DELETE EVENT
+exports.deleteEvent = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    await pool.query(
+      "DELETE FROM events WHERE id = ?",
+      [id]
+    );
+
+    res.json({ message: "Event deleted" });
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+};
+
+
+exports.getCurrentEvent = async (req, res) => {
+
+  try {
+
+    const [rows] = await pool.query(
+      "SELECT * FROM events WHERE status='current' LIMIT 1"
+    );
+
+    if (rows.length > 0) {
+      return res.json(rows[0]);
+    }
+
+    const [fallbackRows] = await pool.query(
+      "SELECT * FROM events ORDER BY created_at DESC LIMIT 1"
+    );
+
+    if (fallbackRows.length === 0) {
+      return res.status(404).json({
+        error: "No events found in the database"
+      });
+    }
+
+    res.json(fallbackRows[0]);
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+};
