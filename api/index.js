@@ -13,6 +13,15 @@ const adminRoutes = require("../routes/adminRoutes");
 
 const app = express();
 
+app.get("/debug", (req, res) => {
+  res.json({ 
+    message: "API is running", 
+    version: "1.0.2 - Priority Routing",
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'not set'
+  });
+});
+
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
@@ -113,14 +122,6 @@ app.use("/invites", invitationRoutes);
 app.use("/workshops", workshopRoutes);
 app.use("/timers", timerRoutes);
 app.use("/admin", adminRoutes);
-
-app.get("/debug", (req, res) => {
-  res.json({ 
-    message: "API is running", 
-    version: "1.0.1 - Fixed Routing",
-    timestamp: new Date().toISOString()
-  });
-});
 
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
