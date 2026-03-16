@@ -12,8 +12,34 @@ const ensureGlobalTimerExists = async () => {
 exports.getEventTimer = async (req, res) => {
   try {
     await ensureGlobalTimerExists();
-    const [rows] = await pool.query("SELECT * FROM timers WHERE id=1");
-    res.json(rows[0]);
+    const [rows] = await pool.query(`
+      SELECT 
+        id, 
+        status, 
+        start_time as startTime, 
+        end_time as endTime, 
+        remaining_seconds as remainingSeconds 
+      FROM timers WHERE id=1
+    `);
+    
+    let timer = rows[0];
+    const now = new Date();
+    
+    // Calculate real-time remaining seconds if running
+    if (timer.status === 'running' && timer.endTime) {
+      const end = new Date(timer.endTime);
+      timer.remainingSeconds = Math.max(0, Math.floor((end - now) / 1000));
+      
+      if (timer.remainingSeconds === 0) {
+        timer.status = 'finished';
+        await pool.query("UPDATE timers SET status='finished', remaining_seconds=0 WHERE id=1");
+      }
+    }
+    
+    res.json({
+      ...timer,
+      serverTime: now.toISOString()
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -26,7 +52,6 @@ exports.startTimer = async (req, res) => {
     if (!duration) duration = 86400; // Default 24h
 
     await ensureGlobalTimerExists();
-    // end_time = NOW() + duration
     const query = `
       UPDATE timers 
       SET status='running', 
@@ -36,7 +61,7 @@ exports.startTimer = async (req, res) => {
       WHERE id=1
     `;
     await pool.query(query, [duration, duration]);
-    res.json({ message: "Timer started" });
+    res.json({ message: "Timer started", duration });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -47,7 +72,6 @@ exports.pauseTimer = async (req, res) => {
   try {
     await ensureGlobalTimerExists();
     
-    // Calculate remaining seconds: TIMESTAMPDIFF(SECOND, NOW(), end_time)
     const [rows] = await pool.query("SELECT end_time FROM timers WHERE id=1");
     if (rows.length === 0 || !rows[0].end_time) {
         return res.status(400).json({ error: "Timer not running" });
@@ -57,7 +81,7 @@ exports.pauseTimer = async (req, res) => {
     const diff = Math.max(0, diffRows[0].diff);
 
     await pool.query("UPDATE timers SET status='paused', remaining_seconds=? WHERE id=1", [diff]);
-    res.json({ message: "Timer paused", remaining_seconds: diff });
+    res.json({ message: "Timer paused", remainingSeconds: diff });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -78,7 +102,7 @@ exports.resumeTimer = async (req, res) => {
       WHERE id=1
     `;
     await pool.query(query, [remaining]);
-    res.json({ message: "Timer resumed" });
+    res.json({ message: "Timer resumed", remainingSeconds: remaining });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -94,3 +118,4 @@ exports.finishTimer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
