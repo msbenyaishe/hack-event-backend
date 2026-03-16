@@ -6,6 +6,7 @@ const isAdminOrTeamLeader = require("../middleware/isAdminOrTeamLeader");
 const isAdminOrLeader = require("../middleware/isAdminOrLeader");
 const memberAuth = require("../middleware/memberAuth")
 const auth = require("../middleware/authMiddleware");
+const isAdmin = require("../middleware/isAdmin");
 
 const {
   createTeam,
@@ -29,7 +30,7 @@ router.get("/:id", getTeam);
 
 router.get("/:id/members", getTeamMembers);
 
-router.put("/:id/scores", auth, upload.none(), updateScores); 
+router.put("/:id/scores", isAdmin, upload.none(), updateScores); 
 
 router.put("/:id",isAdminOrTeamLeader, upload.single("logo"), updateTeam);
 

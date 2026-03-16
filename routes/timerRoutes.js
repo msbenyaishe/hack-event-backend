@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
+const isAdmin = require("../middleware/isAdmin");
 
 const {
   getEventTimer,
@@ -14,9 +15,9 @@ const {
 router.get("/event/global", getEventTimer);
 
 // Admin Only
-router.put("/event/global/start", auth, startTimer);
-router.put("/event/global/pause", auth, pauseTimer);
-router.put("/event/global/resume", auth, resumeTimer);
-router.put("/event/global/finish", auth, finishTimer);
+router.put("/event/global/start", isAdmin, startTimer);
+router.put("/event/global/pause", isAdmin, pauseTimer);
+router.put("/event/global/resume", isAdmin, resumeTimer);
+router.put("/event/global/finish", isAdmin, finishTimer);
 
 module.exports = router;

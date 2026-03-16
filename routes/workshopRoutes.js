@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
+const isAdminOrLeader = require("../middleware/isAdminOrLeader");
+
 
 const {
   createWorkshop,
@@ -14,9 +16,9 @@ const {
 router.get("/event/:eventId", getWorkshops);
 router.get("/:id", getWorkshop);
 
-// Admin Only
-router.post("/", auth, createWorkshop);
-router.put("/:id", auth, updateWorkshop);
-router.delete("/:id", auth, deleteWorkshop);
+// Admin Or Leader
+router.post("/", isAdminOrLeader, createWorkshop);
+router.put("/:id", isAdminOrLeader, updateWorkshop);
+router.delete("/:id", isAdminOrLeader, deleteWorkshop);
 
 module.exports = router;

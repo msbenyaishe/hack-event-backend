@@ -6,10 +6,12 @@ exports.createWorkshop = async (req, res) => {
     const { title, description, technology, duration, event_id, eventId } = req.body;
     const final_event_id = event_id || eventId;
 
+    const responsible_admin = req.user?.id || req.session.memberId;
+    
     const [result] = await pool.query(
-      `INSERT INTO workshops (title, description, technology, duration, event_id)
-       VALUES (?, ?, ?, ?, ?)`,
-      [title, description, technology, parseInt(duration) || 0, final_event_id]
+      `INSERT INTO workshops (title, description, technology, duration, event_id, responsible_admin)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [title, description, technology, parseInt(duration) || 0, final_event_id, responsible_admin]
     );
 
     res.json({ message: "Workshop created successfully", workshop_id: result.insertId });
@@ -24,7 +26,10 @@ exports.getWorkshops = async (req, res) => {
     const { eventId } = req.params;
 
     const [rows] = await pool.query(
-      "SELECT * FROM workshops WHERE event_id=?",
+      `SELECT w.*, CONCAT(m.first_name, ' ', m.last_name) as responsible_admin_name
+       FROM workshops w
+       LEFT JOIN members m ON w.responsible_admin = m.id
+       WHERE w.event_id=?`,
       [eventId]
     );
 

@@ -56,7 +56,7 @@ exports.joinAsLeader = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    const max_leaders = eventRows[0].max_leaders;
+    const max_leaders = 4; // Strictly 4 teams as per requirements
 
     const [leaderCountRows] = await pool.query(
         "SELECT COUNT(*) as count FROM members WHERE event_id=? AND role='leader'",
@@ -64,7 +64,7 @@ exports.joinAsLeader = async (req, res) => {
     );
 
     if (leaderCountRows[0].count >= max_leaders) {
-        return res.status(400).json({ error: "Maximum number of leaders reached for this event" });
+        return res.status(400).json({ error: "Maximum number of teams (4) reached for this event" });
     }
 
     try {
@@ -169,18 +169,15 @@ exports.joinTeam = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    const max_team_members = eventRows[0].max_team_members;
+    const max_team_members = 5; // Strictly 5 members per team as per requirements
 
     const [memberCountRows] = await pool.query(
         "SELECT COUNT(*) as count FROM members WHERE team_id=?",
         [team.id]
     );
 
-    // Leader is part of the team, so count >= max_team_members logic still applies. 
-    // Example: max 4 members total (1 leader, 3 members).
-    // If the database has 3 inside the team, and limit is 4, they can join.
     if (memberCountRows[0].count >= max_team_members) {
-        return res.status(400).json({ error: "Maximum number of team members reached for this team" });
+        return res.status(400).json({ error: "Maximum number of members (5) reached for this team" });
     }
 
     await pool.query(

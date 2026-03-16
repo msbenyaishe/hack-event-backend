@@ -34,6 +34,17 @@ exports.createTeam = async (req, res) => {
 
     const logo = req.file ? req.file.path : null;
 
+    const [countRows] = await pool.query(
+      "SELECT COUNT(*) as count FROM teams WHERE event_id=?",
+      [event_id[0].event_id]
+    );
+
+    if (countRows[0].count >= 4) {
+      return res.status(400).json({
+        error: "Maximum of 4 teams reached for this event"
+      });
+    }
+
     // create team
     const [result] = await pool.query(
       `INSERT INTO teams
@@ -246,7 +257,7 @@ exports.updateScores = async (req, res) => {
         return res.status(400).json({ error: "No scores provided to update" });
     }
 
-    values.push(id);
+    values.push(req.params.id);
 
     const query = `UPDATE teams SET ${fieldsToUpdate.join(", ")} WHERE id=?`;
 

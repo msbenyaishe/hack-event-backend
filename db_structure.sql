@@ -100,12 +100,18 @@ CREATE TABLE workshops (
     technology VARCHAR(100),
     duration INT,
     event_id INT NOT NULL,
+    responsible_admin INT NULL,
 
     INDEX(event_id),
+    INDEX(responsible_admin),
 
     FOREIGN KEY (event_id)
         REFERENCES events(id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (responsible_admin)
+        REFERENCES members(id)
+        ON DELETE SET NULL
 );
 
 -- ======================================================
