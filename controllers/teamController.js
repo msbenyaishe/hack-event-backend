@@ -6,7 +6,7 @@ exports.createTeam = async (req, res) => {
 
   try {
 
-    const leaderId = req.session.memberId;
+    const leaderId = req.user?.id || req.session?.memberId;
 
     //check if leader already has a team
     const [member] = await pool.query(

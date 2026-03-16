@@ -29,17 +29,19 @@ exports.login = async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    req.session.adminId = admin.id;
-
-    req.session.save((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Failed to save session" });
-      }
-      res.json({ 
-        message: "Logged in", 
-        token: token,
-        user: { id: admin.id, email: admin.login, role: 'admin' } 
+    if (req.session) {
+      req.session.adminId = admin.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("[SESSION SAVE ERROR]", err);
+        }
       });
+    }
+
+    res.json({ 
+      message: "Logged in", 
+      token: token,
+      user: { id: admin.id, email: admin.login, role: 'admin' } 
     });
 
   } catch (err) {

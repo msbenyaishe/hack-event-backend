@@ -79,7 +79,7 @@ const sessionStore = new MySQLStore({
   createDatabaseTable: true,
 }, sessionPool);
 
-const isProduction = process.env.NODE_ENV === 'production' || !process.env.DB_HOST.includes('localhost');
+const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(session({
   key: 'hackevent_session_cookie',
@@ -100,9 +100,17 @@ app.use(session({
 // Debugging Middleware
 app.use((req, res, next) => {
   console.log(`[MIDDLEWARE] ${req.method} ${req.url}`);
-  console.log(` - Session ID: ${req.sessionID}`);
-  console.log(` - Admin ID in session: ${req.session.adminId || 'none'}`);
-  console.log(` - Cookies: ${req.headers.cookie || 'none'}`);
+  try {
+    if (req.session) {
+      console.log(` - Session ID: ${req.sessionID}`);
+      console.log(` - Admin ID in session: ${req.session.adminId || 'none'}`);
+    } else {
+      console.log(` - Session: UNDEFINED`);
+    }
+    console.log(` - Cookies: ${req.headers.cookie || 'none'}`);
+  } catch (err) {
+    console.error("[DEBUG MIDDLEWARE] Error:", err.message);
+  }
   next();
 });
 
@@ -112,8 +120,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 app.get("/auth/me", authMiddleware, (req, res) => {
   // If we reach here, the middleware has verified the user
   const user = req.user || {
-    id: req.session.adminId || req.session.memberId,
-    role: req.session.adminId ? 'admin' : 'member'
+    id: req.session?.adminId || req.session?.memberId,
+    role: req.session?.adminId ? 'admin' : 'member'
   };
 
   res.json({ 
@@ -131,6 +139,21 @@ app.use("/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
+});
+
+// 404 Handler
+app.use((req, res, next) => {
+  res.status(404).json({ error: "API Route not found" });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("[GLOBAL ERROR]", err);
+  const status = err.status || 500;
+  res.status(status).json({ 
+    error: err.message || "Internal Server Error",
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 app.listen(process.env.PORT || 5000, () => {

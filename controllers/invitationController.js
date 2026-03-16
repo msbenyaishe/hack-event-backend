@@ -98,7 +98,7 @@ exports.createTeamInvite = async (req, res) => {
 
   try {
 
-    const leaderId = req.user?.id || req.session.memberId;
+    const leaderId = req.user?.id || req.session?.memberId;
 
     if (!leaderId) {
       return res.status(401).json({ error: "Authentication required" });
@@ -184,8 +184,8 @@ exports.joinTeam = async (req, res) => {
         [team.id]
     );
 
-    if (memberCountRows[0].count >= max_team_members) {
-        return res.status(400).json({ error: "Maximum number of members (5) reached for this team" });
+    if (!memberCountRows || memberCountRows.length === 0 || memberCountRows[0].count >= max_team_members) {
+        return res.status(400).json({ error: "Maximum number of members (5) reached for this team or error counting members" });
     }
 
     await pool.query(

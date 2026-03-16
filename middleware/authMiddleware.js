@@ -23,7 +23,7 @@ module.exports = function (req, res, next) {
   }
 
   // 2. Fallback to existing session (for routes not using JWT yet)
-  if (req.session.adminId || req.session.memberId) {
+  if (req.session && (req.session.adminId || req.session.memberId)) {
     return next();
   }
 

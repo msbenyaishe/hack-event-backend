@@ -6,8 +6,12 @@ exports.createWorkshop = async (req, res) => {
     const { title, description, technology, duration, event_id, eventId } = req.body;
     const final_event_id = event_id || eventId;
 
-    const responsible_admin = req.user?.id || req.session.memberId;
+    const responsible_admin = req.user?.id || req.session?.memberId;
     
+    if (!responsible_admin) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
     const [result] = await pool.query(
       `INSERT INTO workshops (title, description, technology, duration, event_id, responsible_admin)
        VALUES (?, ?, ?, ?, ?, ?)`,

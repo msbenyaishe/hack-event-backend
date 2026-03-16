@@ -37,18 +37,20 @@ exports.loginMember = async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    req.session.memberId = member.id;
-
-    req.session.save((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Failed to save session" });
-      }
-      res.json({
-        message: "Logged in",
-        token: token,
-        member_id: member.id,
-        role: member.role
+    if (req.session) {
+      req.session.memberId = member.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("[SESSION SAVE ERROR]", err);
+        }
       });
+    }
+
+    res.json({
+      message: "Logged in",
+      token: token,
+      member_id: member.id,
+      role: member.role
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
