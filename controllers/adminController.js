@@ -4,7 +4,7 @@ const pool = require("../config/db");
 exports.getMembers = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT id, first_name, last_name, email, portfolio, role, event_id, team_id, created_at FROM members ORDER BY created_at DESC"
+      "SELECT id, first_name, last_name, CONCAT(first_name, ' ', last_name) as name, email, portfolio, role, event_id, team_id, created_at FROM members ORDER BY created_at DESC"
     );
 
     res.json(rows);

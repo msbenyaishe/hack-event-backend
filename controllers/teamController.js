@@ -212,11 +212,16 @@ exports.removeTeamMember = async (req, res) => {
 // UPDATE SCORES (ADMIN)
 exports.updateScores = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { practical_score, theoretical_score } = req.body;
+    const { practical_score, theoretical_score, score } = req.body;
 
-    if (practical_score !== undefined && (practical_score < 0 || practical_score > 20)) {
-        return res.status(400).json({ error: "Practical score must be between 0 and 20" });
+    // Handle single 'score' field from frontend if provided
+    let final_practical = practical_score;
+    if (score !== undefined && practical_score === undefined) {
+        final_practical = score;
+    }
+
+    if (final_practical !== undefined && (final_practical < 0 || final_practical > 20)) {
+        return res.status(400).json({ error: "Score must be between 0 and 20" });
     }
 
     if (theoretical_score !== undefined && (theoretical_score < 0 || theoretical_score > 20)) {
@@ -227,9 +232,9 @@ exports.updateScores = async (req, res) => {
     const fieldsToUpdate = [];
     const values = [];
 
-    if (practical_score !== undefined) {
+    if (final_practical !== undefined) {
         fieldsToUpdate.push("practical_score=?");
-        values.push(practical_score);
+        values.push(final_practical);
     }
     
     if (theoretical_score !== undefined) {
@@ -276,6 +281,7 @@ exports.getScoreboard = async (req, res) => {
 
     const [rows] = await pool.query(
       `SELECT t.id, t.name, t.logo, t.color, t.practical_score, t.theoretical_score, 
+              (t.practical_score + t.theoretical_score) as score,
               (t.practical_score + t.theoretical_score) as total_score
        FROM teams t
        WHERE t.event_id=?

@@ -3,12 +3,13 @@ const pool = require("../config/db");
 // CREATE WORKSHOP
 exports.createWorkshop = async (req, res) => {
   try {
-    const { title, description, technology, duration, event_id } = req.body;
+    const { title, description, technology, duration, event_id, eventId } = req.body;
+    const final_event_id = event_id || eventId;
 
     const [result] = await pool.query(
       `INSERT INTO workshops (title, description, technology, duration, event_id)
        VALUES (?, ?, ?, ?, ?)`,
-      [title, description, technology, duration, event_id]
+      [title, description, technology, parseInt(duration) || 0, final_event_id]
     );
 
     res.json({ message: "Workshop created successfully", workshop_id: result.insertId });

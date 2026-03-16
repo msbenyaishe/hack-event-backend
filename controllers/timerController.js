@@ -22,8 +22,8 @@ exports.getEventTimer = async (req, res) => {
 // START TIMER (Accepts duration in seconds)
 exports.startTimer = async (req, res) => {
   try {
-    const { duration } = req.body; // duration in seconds
-    if (!duration) return res.status(400).json({ error: "Duration is required" });
+    let { duration } = req.body; // duration in seconds
+    if (!duration) duration = 86400; // Default 24h
 
     await ensureGlobalTimerExists();
     // end_time = NOW() + duration
