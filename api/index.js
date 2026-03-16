@@ -107,14 +107,20 @@ app.use((req, res, next) => {
 });
 
 app.use("/auth", authRoutes);
-app.get("/auth/me", (req, res) => {
-  if (req.session.adminId) {
-    res.json({ loggedIn: true, role: 'admin', id: req.session.adminId, sessionId: req.sessionID });
-  } else if (req.session.memberId) {
-    res.json({ loggedIn: true, role: 'member', id: req.session.memberId, sessionId: req.sessionID });
-  } else {
-    res.json({ loggedIn: false, sessionId: req.sessionID, cookiesFound: !!req.headers.cookie });
-  }
+const authMiddleware = require("../middleware/authMiddleware");
+
+app.get("/auth/me", authMiddleware, (req, res) => {
+  // If we reach here, the middleware has verified the user
+  const user = req.user || {
+    id: req.session.adminId || req.session.memberId,
+    role: req.session.adminId ? 'admin' : 'member'
+  };
+
+  res.json({ 
+    loggedIn: true, 
+    user: user,
+    sessionId: req.sessionID 
+  });
 });
 app.use("/events", eventRoutes);
 app.use("/teams", teamRoutes);

@@ -24,7 +24,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: admin.id, login: admin.login, role: 'admin' },
+      { id: admin.id, email: admin.login, role: 'admin' },
       process.env.SESSION_SECRET || 'hackathon_secret_777',
       { expiresIn: '24h' }
     );
@@ -38,7 +38,7 @@ exports.login = async (req, res) => {
       res.json({ 
         message: "Logged in", 
         token: token,
-        user: { id: admin.id, login: admin.login, role: 'admin' } 
+        user: { id: admin.id, email: admin.login, role: 'admin' } 
       });
     });
 
