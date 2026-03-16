@@ -35,8 +35,8 @@ exports.createEvent = async (req, res) => {
       end_date,
       location,
       status || 'waiting',
-      final_max_leaders,
-      final_max_members
+      max_leaders || 4,
+      max_team_members || 5
     ]);
 
     res.json({ message: "Event created successfully", id: result.insertId });

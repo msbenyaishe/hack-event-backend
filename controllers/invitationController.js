@@ -98,18 +98,26 @@ exports.createTeamInvite = async (req, res) => {
 
   try {
 
-    const leaderId = req.session.memberId;
+    const leaderId = req.user?.id || req.session.memberId;
+
+    if (!leaderId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
 
     //check if leader already has a team
     const [member] = await pool.query(
-    "SELECT team_id FROM members WHERE id=?",
-    [leaderId]
+      "SELECT team_id FROM members WHERE id=?",
+      [leaderId]
     );
 
+    if (!member || member.length === 0) {
+      return res.status(404).json({ error: "Leader not found" });
+    }
+
     if (member[0].team_id === null) {
-    return res.status(400).json({
-        error: "You must have a team to create an invite"
-    });
+      return res.status(400).json({
+          error: "You must have a team to create an invite"
+      });
     }
     const team_id = member[0].team_id;
 

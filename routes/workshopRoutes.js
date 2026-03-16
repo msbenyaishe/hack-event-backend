@@ -17,8 +17,8 @@ router.get("/event/:eventId", getWorkshops);
 router.get("/:id", getWorkshop);
 
 // Admin Or Leader
-router.post("/", isAdminOrLeader, createWorkshop);
-router.put("/:id", isAdminOrLeader, updateWorkshop);
-router.delete("/:id", isAdminOrLeader, deleteWorkshop);
+router.post("/", auth, isAdminOrLeader, createWorkshop);
+router.put("/:id", auth, isAdminOrLeader, updateWorkshop);
+router.delete("/:id", auth, isAdminOrLeader, deleteWorkshop);
 
 module.exports = router;

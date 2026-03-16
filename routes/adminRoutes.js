@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
+const isAdmin = require("../middleware/isAdmin");
+
 
 const {
   getMembers,
@@ -9,9 +11,9 @@ const {
 } = require("../controllers/adminController");
 
 
-router.get("/members", auth, getMembers);
-router.delete("/members/:id", auth, deleteMember);
-router.put("/members/:id/role", auth, updateMemberRole);
+router.get("/members", auth, isAdmin, getMembers);
+router.delete("/members/:id", auth, isAdmin, deleteMember);
+router.put("/members/:id/role", auth, isAdmin, updateMemberRole);
 
 
 

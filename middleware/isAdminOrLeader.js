@@ -1,14 +1,14 @@
 const pool = require("../config/db");
+
 module.exports = async (req, res, next) => {
 
-  if (req.session.adminId) {
-    //return res.status(401).json({ error: "Unauthorized" });
+  const isAdmin = (req.user && req.user.role === 'admin') || req.session.adminId;
+  if (isAdmin) {
     return next();
   }
 
   try {
-
-    const memberId = req.session.memberId; 
+    const memberId = req.user?.id || req.session.memberId; 
 
     if (!memberId) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -23,18 +23,18 @@ module.exports = async (req, res, next) => {
         return res.status(404).json({ error: "Member not found" });
     }
 
-    if (rows[0].role !== "leader") {
+    const isLeader = (req.user && req.user.role === 'leader') || rows[0].role === "leader";
+
+    if (!isLeader) {
         return res.status(403).json({
-        error: "Only leaders can perform this action"
+          error: "Only leaders can perform this action"
         });
     }
 
     next();
 
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
 
 };

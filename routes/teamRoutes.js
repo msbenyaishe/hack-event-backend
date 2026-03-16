@@ -30,12 +30,12 @@ router.get("/:id", getTeam);
 
 router.get("/:id/members", getTeamMembers);
 
-router.put("/:id/scores", isAdmin, upload.none(), updateScores); 
+router.put("/:id/scores", auth, isAdmin, upload.none(), updateScores); 
 
-router.put("/:id",isAdminOrTeamLeader, upload.single("logo"), updateTeam);
+router.put("/:id", auth, isAdminOrTeamLeader, upload.single("logo"), updateTeam);
 
-router.delete("/:id",isAdminOrTeamLeader, deleteTeam);
+router.delete("/:id", auth, isAdminOrTeamLeader, deleteTeam);
 
-router.delete("/:id/members/:memberId", isAdminOrTeamLeader, removeTeamMember);
+router.delete("/:id/members/:memberId", auth, isAdminOrTeamLeader, removeTeamMember);
 
 module.exports = router;

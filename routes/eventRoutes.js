@@ -11,12 +11,14 @@ const {
   getCurrentEvent
 } = require("../controllers/eventController");
 const auth = require("../middleware/authMiddleware");
+const isAdmin = require("../middleware/isAdmin");
 
-router.post("/", auth, upload.single("logo"), createEvent);
+
+router.post("/", auth, isAdmin, upload.single("logo"), createEvent);
 router.get("/", getEvents);
 router.get("/current", getCurrentEvent);
 router.get("/:id", getEvent);
-router.put("/:id", auth, upload.single("logo"), updateEvent);
-router.delete("/:id", auth, deleteEvent);
+router.put("/:id", auth, isAdmin, upload.single("logo"), updateEvent);
+router.delete("/:id", auth, isAdmin, deleteEvent);
 
 module.exports = router;

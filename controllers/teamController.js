@@ -14,13 +14,14 @@ exports.createTeam = async (req, res) => {
     [leaderId]
     );
 
+    if (!member || member.length === 0) {
+      return res.status(404).json({ error: "Member (Leader) not found" });
+    }
+
     if (member[0].team_id !== null) {
-    return res.status(400).json({
+      return res.status(400).json({
         error: "Leader already has a team"
-    });
-
-
-
+      });
     }
 
     const [event_id] = await pool.query(
@@ -34,14 +35,18 @@ exports.createTeam = async (req, res) => {
 
     const logo = req.file ? req.file.path : null;
 
+    if (!event_id || event_id.length === 0) {
+      return res.status(404).json({ error: "Event not found for this member" });
+    }
+
     const [countRows] = await pool.query(
       "SELECT COUNT(*) as count FROM teams WHERE event_id=?",
       [event_id[0].event_id]
     );
 
-    if (countRows[0].count >= 4) {
+    if (!countRows || countRows.length === 0 || countRows[0].count >= 4) {
       return res.status(400).json({
-        error: "Maximum of 4 teams reached for this event"
+        error: "Maximum of 4 teams reached for this event or error counting teams"
       });
     }
 
@@ -110,6 +115,10 @@ exports.getTeam = async (req, res) => {
       "SELECT * FROM teams WHERE id=?",
       [id]
     );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
 
     res.json(rows[0]);
 

@@ -15,9 +15,9 @@ const {
 router.get("/event/global", getEventTimer);
 
 // Admin Only
-router.put("/event/global/start", isAdmin, startTimer);
-router.put("/event/global/pause", isAdmin, pauseTimer);
-router.put("/event/global/resume", isAdmin, resumeTimer);
-router.put("/event/global/finish", isAdmin, finishTimer);
+router.put("/event/global/start", auth, isAdmin, startTimer);
+router.put("/event/global/pause", auth, isAdmin, pauseTimer);
+router.put("/event/global/resume", auth, isAdmin, resumeTimer);
+router.put("/event/global/finish", auth, isAdmin, finishTimer);
 
 module.exports = router;
