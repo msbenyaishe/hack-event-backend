@@ -16,8 +16,11 @@ CREATE TABLE admins (
 CREATE TABLE events (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
+    description TEXT,
     logo VARCHAR(255),
-    event_date DATETIME,
+    start_date DATETIME,
+    end_date DATETIME,
+    location VARCHAR(255),
     status ENUM('waiting','current','finished') DEFAULT 'waiting',
     max_leaders INT NOT NULL,
     max_team_members INT NOT NULL,

@@ -3,12 +3,13 @@ const pool = require("../config/db");
 
 // CREATE EVENT
 exports.createEvent = async (req, res) => {
-
   try {
-
     const {
       name,
-      event_date,
+      description,
+      start_date,
+      end_date,
+      location,
       status,
       max_leaders,
       max_team_members
@@ -17,30 +18,32 @@ exports.createEvent = async (req, res) => {
     const logo = req.file ? req.file.filename : null;
 
     if (status === 'current') {
-        await pool.query("UPDATE events SET status='finished' WHERE status='current'");
+      await pool.query("UPDATE events SET status='finished' WHERE status='current'");
     }
 
     const query = `
       INSERT INTO events
-      (name, logo, event_date, status, max_leaders, max_team_members)
-      VALUES (?, ?, ?, ?, ?, ?)
+      (name, description, logo, start_date, end_date, location, status, max_leaders, max_team_members)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await pool.query(query, [
+    const [result] = await pool.query(query, [
       name,
+      description,
       logo,
-      event_date,
-      status,
+      start_date,
+      end_date,
+      location,
+      status || 'waiting',
       max_leaders,
       max_team_members
     ]);
 
-    res.json({ message: "Event created successfully" });
+    res.json({ message: "Event created successfully", id: result.insertId });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-
 };
 
 
@@ -93,79 +96,53 @@ exports.getEvent = async (req, res) => {
 
 // UPDATE EVENT
 exports.updateEvent = async (req, res) => {
-
   try {
-
     const { id } = req.params;
-
     const {
       name,
-      event_date,
+      description,
+      start_date,
+      end_date,
+      location,
       status,
       max_leaders,
       max_team_members
     } = req.body;
 
     let logo = null;
-
     if (req.file) {
       logo = req.file.filename;
     }
     
     if (status === 'current') {
-        await pool.query("UPDATE events SET status='finished' WHERE status='current' AND id != ?", [id]);
+      await pool.query("UPDATE events SET status='finished' WHERE status='current' AND id != ?", [id]);
     }
 
     let query;
     let params;
 
     if (logo) {
-
       query = `
         UPDATE events
-        SET name=?, logo=?, event_date=?, status=?, max_leaders=?, max_team_members=?
+        SET name=?, description=?, logo=?, start_date=?, end_date=?, location=?, status=?, max_leaders=?, max_team_members=?
         WHERE id=?
       `;
-
-      params = [
-        name,
-        logo,
-        event_date,
-        status,
-        max_leaders,
-        max_team_members,
-        id
-      ];
-
+      params = [name, description, logo, start_date, end_date, location, status, max_leaders, max_team_members, id];
     } else {
-
       query = `
         UPDATE events
-        SET name=?, event_date=?, status=?, max_leaders=?, max_team_members=?
+        SET name=?, description=?, start_date=?, end_date=?, location=?, status=?, max_leaders=?, max_team_members=?
         WHERE id=?
       `;
-
-      params = [
-        name,
-        event_date,
-        status,
-        max_leaders,
-        max_team_members,
-        id
-      ];
-
+      params = [name, description, start_date, end_date, location, status, max_leaders, max_team_members, id];
     }
 
     await pool.query(query, params);
-
     res.json({ message: "Event updated" });
 
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
-
 };
 
 
