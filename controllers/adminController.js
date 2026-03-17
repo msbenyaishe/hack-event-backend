@@ -48,80 +48,65 @@ exports.deleteMember = async (req, res) => {
 
 // UPDATE MEMBER ROLE
 exports.updateMemberRole = async (req, res) => {
-    // If promoting a member to `leader`, verify the team logic: All other members in the same team must be downgraded to `member`, and the new leader formally becomes the `leader_id` of the `teams` table.
-    // If an admin wants to downgrade the current team leader to a member, they MUST do it by upgrading someone else instead. This automatically downgrades everyone else. A direct downgrade of a team leader without a replacement will return a 400 error.
-  
     try {
       const { id } = req.params;
-      const { role } = req.body;
+      const { role, team_id } = req.body; // Allow optional team_id
       
       if(role !== 'leader' && role !== 'member') {
           return res.status(400).json({ error: "Invalid role" });
       }
       
       const [memberRows] = await pool.query("SELECT * FROM members WHERE id=?", [id]);
-      
-      if(memberRows.length === 0){
-          return res.status(404).json({ error: "Member not found" });
-      }
+      if(memberRows.length === 0) return res.status(404).json({ error: "Member not found" });
       
       const targetMember = memberRows[0];
-      const teamId = targetMember.team_id;
+      const currentTeamId = team_id || targetMember.team_id;
 
-      if (!teamId) {
-          // If member is not in a team, just change their role
-          await pool.query("UPDATE members SET role=? WHERE id=?", [role, id]);
-          return res.json({ message: "Role updated" });
-      }
+      await pool.query("START TRANSACTION");
 
-      const [teamRows] = await pool.query("SELECT * FROM teams WHERE id=?", [teamId]);
-      
-      if(teamRows.length === 0){
-        return res.status(404).json({ error: "Team not found" });
-      }
+      try {
+        if (role === 'leader') {
+          if (currentTeamId) {
+            // Check if team exists
+            const [teamRows] = await pool.query("SELECT * FROM teams WHERE id=?", [currentTeamId]);
+            if (teamRows.length === 0) throw new Error("Team not found");
+            const team = teamRows[0];
 
-      const team = teamRows[0];
+            // 1. Downgrade old leader if exists
+            if (team.leader_id && team.leader_id !== parseInt(id)) {
+              await pool.query("UPDATE members SET role='member' WHERE id=?", [team.leader_id]);
+            }
 
-      // Request to change from leader to member directly without a replacement
-      if(role === 'member' && targetMember.role === 'leader' && team.leader_id === targetMember.id) {
-          return res.status(400).json({ 
-              error: "Cannot downgrade a team leader directly without a replacement. Upgrade another member to leader to automatically downgrade this leader." 
-          });
-      }
+            // 2. Update team leader_id
+            await pool.query("UPDATE teams SET leader_id=? WHERE id=?", [id, currentTeamId]);
 
-      // Request to upgrade a team member to leader
-      if (role === 'leader' && targetMember.role === 'member') {
-          
-          await pool.query("START TRANSACTION");
-          
-          try {
-             // 1. Create a NEW team for this person
-             const teamName = `${targetMember.first_name} ${targetMember.last_name}`;
-             const [teamRes] = await pool.query(
-                 "INSERT INTO teams (name, event_id, leader_id) VALUES (?, ?, ?)",
-                 [teamName, targetMember.event_id, id]
-             );
-             const newTeamId = teamRes.insertId;
-
-             // 2. Update the target member's role and team_id
-             await pool.query(
-                 "UPDATE members SET role='leader', team_id=? WHERE id=?",
-                 [newTeamId, id]
-             );
-             
-             await pool.query("COMMIT");
-             return res.json({ message: "Role updated to leader of a new team" });
-
-          } catch (txErr) {
-             await pool.query("ROLLBACK");
-             throw txErr;
+            // 3. Update member role and team_id
+            await pool.query("UPDATE members SET role='leader', team_id=? WHERE id=?", [currentTeamId, id]);
+          } else {
+            // Create new team if no team_id
+            const teamName = `${targetMember.first_name} Team`;
+            const [teamRes] = await pool.query(
+              "INSERT INTO teams (name, event_id, leader_id) VALUES (?, ?, ?)",
+              [teamName, targetMember.event_id, id]
+            );
+            await pool.query("UPDATE members SET role='leader', team_id=? WHERE id=?", [teamRes.insertId, id]);
           }
+        } else {
+          // Downgrading to member
+          // If they are a leader, we must check if the team still has a leader_id pointing to them
+          const [ledTeams] = await pool.query("SELECT id FROM teams WHERE leader_id=?", [id]);
+          if (ledTeams.length > 0) {
+            throw new Error("Cannot downgrade a leader directly. Assign a new leader to their team first.");
+          }
+          await pool.query("UPDATE members SET role='member' WHERE id=?", [id]);
+        }
+
+        await pool.query("COMMIT");
+        res.json({ message: "Role updated successfully" });
+      } catch (txErr) {
+        await pool.query("ROLLBACK");
+        res.status(400).json({ error: txErr.message });
       }
-      
-      // If it reaches here, it might be a redundant change (e.g. member to member)
-      await pool.query("UPDATE members SET role=? WHERE id=?", [role, id]);
-      res.json({ message: "Role updated" });
-  
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

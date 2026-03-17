@@ -2,6 +2,40 @@ const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+exports.registerMember = async (req, res) => {
+  const { first_name, last_name, email, password, portfolio, event_id } = req.body;
+
+  if (!first_name || !last_name || !email || !password || !event_id) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    // Check if user already exists
+    const [existing] = await pool.query("SELECT id FROM members WHERE email = ?", [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
+
+    // Insert user
+    const [result] = await pool.query(
+      "INSERT INTO members (first_name, last_name, email, password_hash, portfolio, role, event_id, team_id) VALUES (?, ?, ?, ?, ?, 'member', ?, NULL)",
+      [first_name, last_name, email, password_hash, portfolio || null, event_id]
+    );
+
+    res.status(201).json({
+      message: "Member registered successfully",
+      member_id: result.insertId
+    });
+  } catch (err) {
+    console.error("[REGISTER ERROR]", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.loginMember = async (req, res) => {
 
   const { email, password } = req.body;
