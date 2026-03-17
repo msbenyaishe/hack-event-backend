@@ -294,6 +294,60 @@ exports.getTeamMembers = async (req, res) => {
   }
 };
 
+// GET AVAILABLE MEMBERS FOR A TEAM (LEADER)
+exports.getAvailableMembers = async (req, res) => {
+  try {
+    const { event_id } = req.query;
+    if (!event_id) return res.status(400).json({ error: "event_id is required" });
+
+    // Available members = those in the same event with no team_id
+    const [rows] = await pool.query(
+      "SELECT id, first_name, last_name, CONCAT(first_name, ' ', last_name) as name, email, portfolio FROM members WHERE event_id = ? AND team_id IS NULL AND role = 'member'",
+      [event_id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ADD MEMBER TO TEAM (LEADER)
+exports.addMemberToTeam = async (req, res) => {
+  try {
+    const { team_id, memberId } = req.body;
+    if (!team_id || !memberId) return res.status(400).json({ error: "team_id and memberId are required" });
+
+    // 1. Check team capacity
+    const [teamMembers] = await pool.query("SELECT COUNT(*) as count FROM members WHERE team_id = ?", [team_id]);
+    if (teamMembers[0].count >= 5) {
+      return res.status(400).json({ error: "Team is already full (max 5 members)" });
+    }
+
+    // 2. Check if member is available and in the same event
+    const [teamRows] = await pool.query("SELECT event_id FROM teams WHERE id = ?", [team_id]);
+    const [memberRows] = await pool.query("SELECT event_id, team_id FROM members WHERE id = ?", [memberId]);
+
+    if (teamRows.length === 0 || memberRows.length === 0) {
+      return res.status(404).json({ error: "Team or Member not found" });
+    }
+
+    if (memberRows[0].event_id !== teamRows[0].event_id) {
+      return res.status(400).json({ error: "Member must be in the same event as the team" });
+    }
+
+    if (memberRows[0].team_id !== null) {
+      return res.status(400).json({ error: "Member is already in a team" });
+    }
+
+    // 3. Add to team
+    await pool.query("UPDATE members SET team_id = ? WHERE id = ?", [team_id, memberId]);
+
+    res.json({ message: "Member added to team successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // GET SCOREBOARD
 exports.getScoreboard = async (req, res) => {
   try {

@@ -93,11 +93,10 @@ exports.updateMemberRole = async (req, res) => {
           }
         } else {
           // Downgrading to member
-          // If they are a leader, we must check if the team still has a leader_id pointing to them
-          const [ledTeams] = await pool.query("SELECT id FROM teams WHERE leader_id=?", [id]);
-          if (ledTeams.length > 0) {
-            throw new Error("Cannot downgrade a leader directly. Assign a new leader to their team first.");
-          }
+          // 1. If they are a leader, nullify their leader_id in teams
+          await pool.query("UPDATE teams SET leader_id = NULL WHERE leader_id = ?", [id]);
+          
+          // 2. Set their role to member
           await pool.query("UPDATE members SET role='member' WHERE id=?", [id]);
         }
 

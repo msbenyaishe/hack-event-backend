@@ -17,10 +17,15 @@ const {
   removeTeamMember,
   updateScores,
   getScoreboard,
-  getTeamMembers
+  getTeamMembers,
+  getAvailableMembers,
+  addMemberToTeam
 } = require("../controllers/teamController");
 
 router.post("/", isAdminOrLeader, upload.single("logo"), createTeam);
+
+router.get("/available", auth, isAdminOrLeader, getAvailableMembers);
+router.post("/add-member", auth, isAdminOrTeamLeader, addMemberToTeam);
 
 router.get("/scoreboard/:eventId", getScoreboard);
 
