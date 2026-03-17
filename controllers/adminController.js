@@ -58,6 +58,12 @@ exports.updateMemberRole = async (req, res) => {
       
       const [memberRows] = await pool.query("SELECT * FROM members WHERE id=?", [id]);
       if(memberRows.length === 0) return res.status(404).json({ error: "Member not found" });
+
+      // Lazy migration: Ensure leader_id in teams can be NULL
+      await pool.query("ALTER TABLE teams MODIFY leader_id INT NULL").catch(err => {
+        // Silently fail if already altered or other non-critical error
+        console.log("[DB FIX] leader_id modification skipped/failed:", err.message);
+      });
       
       const targetMember = memberRows[0];
       const currentTeamId = team_id || targetMember.team_id;
@@ -93,10 +99,20 @@ exports.updateMemberRole = async (req, res) => {
           }
         } else {
           // Downgrading to member
-          // 1. If they are a leader, nullify their leader_id in teams
-          await pool.query("UPDATE teams SET leader_id = NULL WHERE leader_id = ?", [id]);
+          try {
+            // 1. Try to nullify leader_id in teams
+            await pool.query("UPDATE teams SET leader_id = NULL WHERE leader_id = ?", [id]);
+          } catch (nullErr) {
+            // 2. If it fails (likely due to NOT NULL constraint), disband the team
+            // but keep the members (set their team_id to NULL)
+            const [teams] = await pool.query("SELECT id FROM teams WHERE leader_id = ?", [id]);
+            for (const t of teams) {
+              await pool.query("UPDATE members SET team_id = NULL WHERE team_id = ?", [t.id]);
+              await pool.query("DELETE FROM teams WHERE id = ?", [t.id]);
+            }
+          }
           
-          // 2. Set their role to member
+          // 3. Set their role to member
           await pool.query("UPDATE members SET role='member' WHERE id=?", [id]);
         }
 
