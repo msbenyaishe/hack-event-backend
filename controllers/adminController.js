@@ -50,7 +50,7 @@ exports.deleteMember = async (req, res) => {
 exports.updateMemberRole = async (req, res) => {
     try {
       const { id } = req.params;
-      const { role, team_id } = req.body; // Allow optional team_id
+      const { role } = req.body; 
       
       if(role !== 'leader' && role !== 'member') {
           return res.status(400).json({ error: "Invalid role" });
@@ -59,61 +59,30 @@ exports.updateMemberRole = async (req, res) => {
       const [memberRows] = await pool.query("SELECT * FROM members WHERE id=?", [id]);
       if(memberRows.length === 0) return res.status(404).json({ error: "Member not found" });
 
-      // Lazy migration: Ensure leader_id in teams can be NULL
-      await pool.query("ALTER TABLE teams MODIFY leader_id INT NULL").catch(err => {
-        // Silently fail if already altered or other non-critical error
-        console.log("[DB FIX] leader_id modification skipped/failed:", err.message);
-      });
-      
       const targetMember = memberRows[0];
-      const currentTeamId = team_id || targetMember.team_id;
 
       await pool.query("START TRANSACTION");
 
       try {
         if (role === 'leader') {
-          if (currentTeamId) {
-            // Check if team exists
-            const [teamRows] = await pool.query("SELECT * FROM teams WHERE id=?", [currentTeamId]);
-            if (teamRows.length === 0) throw new Error("Team not found");
-            const team = teamRows[0];
-
-            // 1. Downgrade old leader if exists
-            if (team.leader_id && team.leader_id !== parseInt(id)) {
-              await pool.query("UPDATE members SET role='member' WHERE id=?", [team.leader_id]);
-            }
-
-            // 2. Update team leader_id
-            await pool.query("UPDATE teams SET leader_id=? WHERE id=?", [id, currentTeamId]);
-
-            // 3. Update member role and team_id
-            await pool.query("UPDATE members SET role='leader', team_id=? WHERE id=?", [currentTeamId, id]);
-          } else {
-            // Create new team if no team_id
-            const teamName = `${targetMember.first_name} Team`;
-            const [teamRes] = await pool.query(
-              "INSERT INTO teams (name, event_id, leader_id) VALUES (?, ?, ?)",
-              [teamName, targetMember.event_id, id]
-            );
-            await pool.query("UPDATE members SET role='leader', team_id=? WHERE id=?", [teamRes.insertId, id]);
-          }
+          // Just update the role. Team creation is handled by the leader later.
+          await pool.query("UPDATE members SET role='leader' WHERE id=?", [id]);
         } else {
-          // Downgrading to member
-          try {
-            // 1. Try to nullify leader_id in teams
-            await pool.query("UPDATE teams SET leader_id = NULL WHERE leader_id = ?", [id]);
-          } catch (nullErr) {
-            // 2. If it fails (likely due to NOT NULL constraint), disband the team
-            // but keep the members (set their team_id to NULL)
-            const [teams] = await pool.query("SELECT id FROM teams WHERE leader_id = ?", [id]);
-            for (const t of teams) {
-              await pool.query("UPDATE members SET team_id = NULL WHERE team_id = ?", [t.id]);
-              await pool.query("DELETE FROM teams WHERE id = ?", [t.id]);
-            }
+          // Downgrading to member: If they were a leader of a team, we must handle it.
+          // According to the requirement: "a team should have only and necessary one leader."
+          // If we remove the leader, we disband the team.
+          const [teams] = await pool.query("SELECT id FROM teams WHERE leader_id = ?", [id]);
+          for (const t of teams) {
+            // Set all members' team_id to NULL before deleting the team (handled by trigger/cascade too but let's be explicit if needed)
+            // The trigger 'before_team_delete' already handles this by:
+            // - deleting 'member' role users
+            // - setting team_id = NULL for 'leader' role (which is the one being deleted here)
+            // However, we are changing this user to 'member' now.
+            await pool.query("UPDATE members SET team_id = NULL WHERE team_id = ?", [t.id]);
+            await pool.query("DELETE FROM teams WHERE id = ?", [t.id]);
           }
           
-          // 3. Set their role to member
-          await pool.query("UPDATE members SET role='member' WHERE id=?", [id]);
+          await pool.query("UPDATE members SET role='member', team_id=NULL WHERE id=?", [id]);
         }
 
         await pool.query("COMMIT");
