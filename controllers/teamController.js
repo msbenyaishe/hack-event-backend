@@ -92,7 +92,10 @@ exports.getTeams = async (req, res) => {
 
   try {
 
-    const [rows] = await pool.query("SELECT * FROM teams");
+    const [rows] = await pool.query(`
+      SELECT t.*, (SELECT COUNT(*) FROM members WHERE team_id = t.id) as membersCount 
+      FROM teams t
+    `);
 
     res.json(rows);
 
@@ -357,7 +360,8 @@ exports.getScoreboard = async (req, res) => {
     const [rows] = await pool.query(
       `SELECT t.id, t.name, t.logo, t.color, t.practical_score, t.theoretical_score, 
               (t.practical_score + t.theoretical_score) as score,
-              (t.practical_score + t.theoretical_score) as total_score
+              (t.practical_score + t.theoretical_score) as total_score,
+              (SELECT COUNT(*) FROM members WHERE team_id = t.id) as membersCount
        FROM teams t
        WHERE t.event_id=?
        ORDER BY total_score DESC, t.name ASC`,

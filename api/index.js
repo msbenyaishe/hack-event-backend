@@ -117,18 +117,23 @@ app.use((req, res, next) => {
 app.use("/auth", authRoutes);
 const authMiddleware = require("../middleware/authMiddleware");
 
-app.get("/auth/me", authMiddleware, (req, res) => {
-  // If we reach here, the middleware has verified the user
-  const user = req.user || {
-    id: req.session?.adminId || req.session?.memberId,
-    role: req.session?.adminId ? 'admin' : 'member'
-  };
+app.get("/auth/me", authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-  res.json({ 
-    loggedIn: true, 
-    user: user,
-    sessionId: req.sessionID 
-  });
+    if (user.role === 'admin') {
+      const [rows] = await pool.query("SELECT id, login as email, 'admin' as role FROM admins WHERE id = ?", [user.id]);
+      if (rows.length === 0) return res.status(404).json({ error: "Admin not found" });
+      return res.json({ loggedIn: true, user: rows[0] });
+    } else {
+      const [rows] = await pool.query("SELECT id, email, role, event_id, team_id FROM members WHERE id = ?", [user.id]);
+      if (rows.length === 0) return res.status(404).json({ error: "Member not found" });
+      return res.json({ loggedIn: true, user: rows[0] });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 app.use("/events", eventRoutes);
 app.use("/teams", teamRoutes);
