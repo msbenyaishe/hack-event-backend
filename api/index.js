@@ -99,7 +99,14 @@ app.use(session({
 
 // Debugging Middleware
 app.use((req, res, next) => {
-  console.log(`[MIDDLEWARE] ${req.method} ${req.url}`);
+  const start = Date.now();
+  console.log(`[MIDDLEWARE] ${req.method} ${req.url} - Start`);
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[MIDDLEWARE] ${req.method} ${req.url} - Finished in ${duration}ms`);
+  });
+
   try {
     if (req.session) {
       console.log(` - Session ID: ${req.sessionID}`);

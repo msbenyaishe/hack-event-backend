@@ -221,11 +221,11 @@ exports.removeTeamMember = async (req, res) => {
     }
 
     await pool.query(
-      "DELETE FROM members WHERE id=?",
+      "UPDATE members SET team_id = NULL WHERE id=?",
       [memberId]
     );
-
-    res.json({ message: "Team member removed. User deleted." });
+    
+    res.json({ message: "Member removed from team (unlinked)" });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
