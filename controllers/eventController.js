@@ -1,5 +1,14 @@
 const pool = require("../config/db");
 
+const formatEventDates = (event) => {
+  if (event.start_date && typeof event.start_date === 'string') {
+    event.start_date = event.start_date.replace(' ', 'T');
+  }
+  if (event.end_date && typeof event.end_date === 'string') {
+    event.end_date = event.end_date.replace(' ', 'T');
+  }
+  return event;
+};
 
 // CREATE EVENT
 exports.createEvent = async (req, res) => {
@@ -56,7 +65,7 @@ exports.getEvents = async (req, res) => {
       "SELECT * FROM events ORDER BY created_at DESC"
     );
 
-    res.json(rows);
+    res.json(rows.map(formatEventDates));
 
   } catch (err) {
 
@@ -83,7 +92,7 @@ exports.getEvent = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    res.json(rows[0]);
+    res.json(formatEventDates(rows[0]));
 
   } catch (err) {
 
@@ -178,7 +187,7 @@ exports.getCurrentEvent = async (req, res) => {
     );
 
     if (rows.length > 0) {
-      return res.json(rows[0]);
+      return res.json(formatEventDates(rows[0]));
     }
 
     const [fallbackRows] = await pool.query(
@@ -191,7 +200,7 @@ exports.getCurrentEvent = async (req, res) => {
       });
     }
 
-    res.json(fallbackRows[0]);
+    res.json(formatEventDates(fallbackRows[0]));
 
   } catch (err) {
 
