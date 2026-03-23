@@ -51,8 +51,6 @@ exports.startTimer = async (req, res) => {
   try {
     let { duration } = req.body; // duration in seconds
     if (!duration) duration = 86400; // Default 24h
-
-    await ensureGlobalTimerExists();
     
     const now = new Date();
     const endTime = new Date(now.getTime() + duration * 1000);

@@ -3,6 +3,8 @@ const cors = require("cors");
 const session = require("express-session");
 require("dotenv").config();
 
+const { ensureGlobalTimerExists } = require("../controllers/timerController");
+
 const authRoutes = require("../routes/authRoutes");
 const eventRoutes = require("../routes/eventRoutes");
 const teamRoutes = require("../routes/teamRoutes");
@@ -168,8 +170,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log(`Server running on port ${process.env.PORT || 5000}`);
-});
+const PORT = process.env.PORT || 5000;
+
+(async () => {
+  try {
+    await ensureGlobalTimerExists(); // ✅ runs ONLY once
+    console.log("✅ Timer initialized");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to initialize timer:", err);
+  }
+})();
 
 module.exports = app;
