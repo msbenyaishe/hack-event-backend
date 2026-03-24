@@ -10,8 +10,13 @@ const formatWorkshopDates = (workshop) => {
 // CREATE WORKSHOP
 exports.createWorkshop = async (req, res) => {
   try {
-    const { title, description, technology, duration, event_id, eventId, start_time, location } = req.body;
+    const { title, description, technology, duration, event_id, eventId, start_time, location, link } = req.body;
     const final_event_id = event_id || eventId;
+
+    let final_link = link || null;
+    if (req.file) {
+      final_link = req.file.path;
+    }
 
     // Foreign Key Constraint Fix:
     // workshops.responsible_admin references members(id).
@@ -28,8 +33,8 @@ exports.createWorkshop = async (req, res) => {
     }
 
     const [result] = await pool.query(
-      `INSERT INTO workshops (title, description, technology, duration, event_id, responsible_admin, start_time, location)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO workshops (title, description, technology, duration, event_id, responsible_admin, start_time, location, link)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         title, 
         description, 
@@ -38,7 +43,8 @@ exports.createWorkshop = async (req, res) => {
         final_event_id, 
         final_responsible_admin,
         start_time || null,
-        location || null
+        location || null,
+        final_link
       ]
     );
 
@@ -91,13 +97,18 @@ exports.getWorkshop = async (req, res) => {
 exports.updateWorkshop = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, technology, duration, start_time, location } = req.body;
+    const { title, description, technology, duration, start_time, location, link } = req.body;
+
+    let final_link = link || null;
+    if (req.file) {
+      final_link = req.file.path;
+    }
 
     await pool.query(
       `UPDATE workshops
-       SET title=?, description=?, technology=?, duration=?, start_time=?, location=?
+       SET title=?, description=?, technology=?, duration=?, start_time=?, location=?, link=?
        WHERE id=?`,
-      [title, description, technology, duration, start_time || null, location || null, id]
+      [title, description, technology, duration, start_time || null, location || null, final_link, id]
     );
 
     res.json({ message: "Workshop updated" });
