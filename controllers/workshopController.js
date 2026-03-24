@@ -1,4 +1,6 @@
 const pool = require("../config/db");
+const fs = require("fs");
+const path = require("path");
 
 const formatWorkshopDates = (workshop) => {
   if (workshop.start_time && typeof workshop.start_time === 'string') {
@@ -14,9 +16,6 @@ exports.createWorkshop = async (req, res) => {
     const final_event_id = event_id || eventId;
 
     let final_link = link || null;
-    if (req.file) {
-      final_link = req.file.path;
-    }
 
     // Foreign Key Constraint Fix:
     // workshops.responsible_admin references members(id).
@@ -101,9 +100,6 @@ exports.updateWorkshop = async (req, res) => {
     const { title, description, technology, duration, start_time, location, link } = req.body;
 
     let final_link = link || null;
-    if (req.file) {
-      final_link = req.file.path;
-    }
 
     await pool.query(
       `UPDATE workshops
@@ -130,6 +126,21 @@ exports.deleteWorkshop = async (req, res) => {
     );
 
     res.json({ message: "Workshop deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// LIST PDFS
+exports.listPdfs = async (req, res) => {
+  try {
+    const pdfDir = path.join(__dirname, "../pdfs");
+    if (!fs.existsSync(pdfDir)) {
+      return res.json([]);
+    }
+    const files = fs.readdirSync(pdfDir);
+    const pdfFiles = files.filter(file => file.toLowerCase().endsWith('.pdf'));
+    res.json(pdfFiles);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

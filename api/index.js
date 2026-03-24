@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+const path = require("path");
 require("dotenv").config();
 
 const authRoutes = require("../routes/authRoutes");
@@ -58,6 +59,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use('/pdfs', express.static(path.join(__dirname, '../pdfs')));
 
 const MySQLStore = require("express-mysql-session")(session);
 const pool = require("../config/db"); // This is a promise pool
