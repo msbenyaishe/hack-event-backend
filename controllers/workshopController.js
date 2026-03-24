@@ -15,7 +15,7 @@ exports.createWorkshop = async (req, res) => {
 
     let final_link = link || null;
     if (req.file) {
-      final_link = req.file.path;
+      final_link = req.file.filename;
     }
 
     // Foreign Key Constraint Fix:
@@ -101,7 +101,7 @@ exports.updateWorkshop = async (req, res) => {
 
     let final_link = link || null;
     if (req.file) {
-      final_link = req.file.path;
+      final_link = req.file.filename;
     }
 
     await pool.query(

@@ -59,6 +59,9 @@ app.use(cors({
 
 app.use(express.json());
 
+const path = require('path');
+app.use('/pdfs', express.static(path.join(__dirname, '../pdfs')));
+
 const MySQLStore = require("express-mysql-session")(session);
 const pool = require("../config/db"); // This is a promise pool
 const mysql = require("mysql2"); // Import standard mysql2 for callback pool
