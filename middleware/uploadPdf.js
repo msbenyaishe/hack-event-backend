@@ -1,6 +1,7 @@
 const multer = require('multer');
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
+const path = require('path');
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -9,7 +10,8 @@ const storage = new CloudinaryStorage({
     resource_type: "raw", // Needed for non-image files like PDF
     public_id: (req, file) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      return file.fieldname + '-' + uniqueSuffix;
+      const extension = path.extname(file.originalname);
+      return file.fieldname + '-' + uniqueSuffix + extension;
     }
   }
 });
