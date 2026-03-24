@@ -6,7 +6,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "hackevent/teams",
-    allowed_formats: ["jpg", "png", "webp"]
+    allowed_formats: ["jpg", "jpeg", "png"]
   }
 });
 
