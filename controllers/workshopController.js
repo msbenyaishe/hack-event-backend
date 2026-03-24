@@ -15,7 +15,7 @@ exports.createWorkshop = async (req, res) => {
 
     let final_link = link || null;
     if (req.file) {
-      final_link = req.file.filename;
+      final_link = req.file.path;
     }
 
     // Foreign Key Constraint Fix:
@@ -50,6 +50,7 @@ exports.createWorkshop = async (req, res) => {
 
     res.json({ message: "Workshop created successfully", workshop_id: result.insertId });
   } catch (err) {
+    console.error("[WORKSHOP CREATE ERROR]", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -101,7 +102,7 @@ exports.updateWorkshop = async (req, res) => {
 
     let final_link = link || null;
     if (req.file) {
-      final_link = req.file.filename;
+      final_link = req.file.path;
     }
 
     await pool.query(
@@ -113,6 +114,7 @@ exports.updateWorkshop = async (req, res) => {
 
     res.json({ message: "Workshop updated" });
   } catch (err) {
+    console.error("[WORKSHOP UPDATE ERROR]", err);
     res.status(500).json({ error: err.message });
   }
 };

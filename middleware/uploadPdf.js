@@ -1,18 +1,18 @@
 const multer = require('multer');
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 const path = require('path');
-const fs = require('fs');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const pdfsDir = path.join(__dirname, '../pdfs');
-    if (!fs.existsSync(pdfsDir)) {
-      fs.mkdirSync(pdfsDir, { recursive: true });
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "hackevent/workshops",
+    resource_type: "raw", // Needed for non-image files like PDF
+    public_id: (req, file) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = path.extname(file.originalname);
+      return file.fieldname + '-' + uniqueSuffix + extension;
     }
-    cb(null, pdfsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
