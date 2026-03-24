@@ -24,7 +24,7 @@ exports.createEvent = async (req, res) => {
       max_team_members
     } = req.body;
 
-    const logo = req.file ? req.file.filename : null;
+    const logo = req.file ? req.file.path : null;
 
     if (status === 'current') {
       await pool.query("UPDATE events SET status='finished' WHERE status='current'");
@@ -120,7 +120,7 @@ exports.updateEvent = async (req, res) => {
 
     let logo = null;
     if (req.file) {
-      logo = req.file.filename;
+      logo = req.file.path;
     }
     
     if (status === 'current') {
