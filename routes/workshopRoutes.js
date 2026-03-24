@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
 const isAdminOrLeader = require("../middleware/isAdminOrLeader");
-const uploadPdf = require("../middleware/uploadPdf");
 
 const {
   createWorkshop,
