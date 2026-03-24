@@ -59,7 +59,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/pdfs', express.static(path.join(__dirname, '../pdfs')));
+app.use('/pdfs', express.static(path.join(__dirname, '../pdfs'), {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 const MySQLStore = require("express-mysql-session")(session);
 const pool = require("../config/db"); // This is a promise pool
