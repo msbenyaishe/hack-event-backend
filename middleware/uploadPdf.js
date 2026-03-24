@@ -7,7 +7,7 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "hackevent/workshops",
-    resource_type: "raw", // Needed for non-image files like PDF
+    resource_type: "auto", // Better for PDFs than "raw"
     public_id: (req, file) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       const extension = path.extname(file.originalname);
