@@ -147,6 +147,12 @@ exports.updateEvent = async (req, res) => {
     }
 
     await pool.query(query, params);
+    
+    // Clear the current event from the admin's session so they see the updated details immediately 
+    if (req.session) {
+      req.session.currentEvent = null;
+    }
+
     res.json({ message: "Event updated" });
 
   } catch (err) {
@@ -179,33 +185,37 @@ exports.deleteEvent = async (req, res) => {
 
 
 exports.getCurrentEvent = async (req, res) => {
-
   try {
+    if (req.session && req.session.currentEvent) {
+      return res.json(req.session.currentEvent);
+    }
 
     const [rows] = await pool.query(
       "SELECT * FROM events WHERE status='current' LIMIT 1"
     );
 
+    let eventData;
     if (rows.length > 0) {
-      return res.json(formatEventDates(rows[0]));
+      eventData = formatEventDates(rows[0]);
+    } else {
+      const [fallbackRows] = await pool.query(
+        "SELECT * FROM events ORDER BY created_at DESC LIMIT 1"
+      );
+
+      if (fallbackRows.length === 0) {
+        return res.status(404).json({
+          error: "No events found in the database"
+        });
+      }
+      eventData = formatEventDates(fallbackRows[0]);
     }
 
-    const [fallbackRows] = await pool.query(
-      "SELECT * FROM events ORDER BY created_at DESC LIMIT 1"
-    );
-
-    if (fallbackRows.length === 0) {
-      return res.status(404).json({
-        error: "No events found in the database"
-      });
+    if (req.session) {
+      req.session.currentEvent = eventData;
     }
 
-    res.json(formatEventDates(fallbackRows[0]));
-
+    res.json(eventData);
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
-
 };
