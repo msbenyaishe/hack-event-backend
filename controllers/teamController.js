@@ -183,13 +183,42 @@ exports.deleteTeam = async (req, res) => {
   try {
 
     const { id } = req.params;
+    
+    // We discovered a trigger 'before_team_delete' that deletes members!
+    // We must ensure it's removed so members remain in the event.
+    await pool.query("DROP TRIGGER IF EXISTS before_team_delete");
 
-    await pool.query(
-      "DELETE FROM teams WHERE id=?",
-      [id]
-    );
+    // Start a transaction for absolute safety
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
 
-    res.json({ message: "Team deleted" });
+      // 1. Unlink all members from this team first
+      await connection.query(
+        "UPDATE members SET team_id = NULL WHERE team_id = ?",
+        [id]
+      );
+
+      // 2. Cleanup team invitations
+      await connection.query(
+        "DELETE FROM team_invitations WHERE team_id = ?",
+        [id]
+      );
+
+      // 3. Delete the team
+      await connection.query(
+        "DELETE FROM teams WHERE id=?",
+        [id]
+      );
+
+      await connection.commit();
+      res.json({ message: "Team deleted, members preserved" });
+    } catch (err) {
+      if (connection) await connection.rollback();
+      throw err;
+    } finally {
+      if (connection) connection.release();
+    }
 
   } catch (err) {
 
