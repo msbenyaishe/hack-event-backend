@@ -219,3 +219,26 @@ exports.getCurrentEvent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// SET CURRENT EVENT
+exports.setCurrentEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // First update any existing 'current' events to 'finished'
+    await pool.query("UPDATE events SET status='finished' WHERE status='current'");
+    
+    // Then set the selected event to 'current'
+    await pool.query("UPDATE events SET status='current' WHERE id = ?", [id]);
+
+    // Clear the current event from session so it fetches fresh data next time
+    if (req.session) {
+      req.session.currentEvent = null;
+    }
+
+    res.json({ message: "Event set to current successfully" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
