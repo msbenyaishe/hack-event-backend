@@ -200,6 +200,22 @@ CREATE TABLE `team_invitations` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `submissions`
+--
+
+CREATE TABLE `submissions` (
+  `id` int(11) NOT NULL,
+  `team_id` int(11) NOT NULL,
+  `workshop_id` int(11) NOT NULL,
+  `repo_link` varchar(255) DEFAULT NULL,
+  `web_app_link` varchar(255) DEFAULT NULL,
+  `pdf_link` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `timers`
 --
 
@@ -303,6 +319,15 @@ ALTER TABLE `team_invitations`
   ADD KEY `team_id` (`team_id`);
 
 --
+-- Indexes for table `submissions`
+--
+ALTER TABLE `submissions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `team_workshop` (`team_id`,`workshop_id`),
+  ADD KEY `team_id` (`team_id`),
+  ADD KEY `workshop_id` (`workshop_id`);
+
+--
 -- Indexes for table `timers`
 --
 ALTER TABLE `timers`
@@ -358,6 +383,12 @@ ALTER TABLE `team_invitations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `submissions`
+--
+ALTER TABLE `submissions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `timers`
 --
 ALTER TABLE `timers`
@@ -398,6 +429,13 @@ ALTER TABLE `teams`
 --
 ALTER TABLE `team_invitations`
   ADD CONSTRAINT `team_invitations_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `submissions`
+--
+ALTER TABLE `submissions`
+  ADD CONSTRAINT `submissions_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `submissions_ibfk_2` FOREIGN KEY (`workshop_id`) REFERENCES `workshops` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `timers`

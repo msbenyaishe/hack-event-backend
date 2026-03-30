@@ -11,6 +11,7 @@ const invitationRoutes = require("../routes/invitationRoutes");
 const workshopRoutes = require("../routes/workshopRoutes");
 const timerRoutes = require("../routes/timerRoutes");
 const adminRoutes = require("../routes/adminRoutes");
+const submissionRoutes = require("../routes/submissionRoutes");
 
 const app = express();
 
@@ -154,6 +155,7 @@ app.use("/invites", invitationRoutes);
 app.use("/workshops", workshopRoutes);
 app.use("/timers", timerRoutes);
 app.use("/admin", adminRoutes);
+app.use("/submissions", submissionRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
