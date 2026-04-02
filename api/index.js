@@ -141,7 +141,10 @@ app.get("/auth/me", authMiddleware, async (req, res) => {
       if (rows.length === 0) return res.status(404).json({ error: "Admin not found" });
       return res.json({ loggedIn: true, user: rows[0] });
     } else {
-      const [rows] = await pool.query("SELECT id, email, role, event_id, team_id FROM members WHERE id = ?", [user.id]);
+      const [rows] = await pool.query(
+        "SELECT id, email, role, event_id, team_id, first_name, last_name, portfolio FROM members WHERE id = ?", 
+        [user.id]
+      );
       if (rows.length === 0) return res.status(404).json({ error: "Member not found" });
       return res.json({ loggedIn: true, user: rows[0] });
     }
@@ -149,6 +152,8 @@ app.get("/auth/me", authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.put("/auth/me", authMiddleware, require("../controllers/memberAuthController").updateMemberProfile);
 app.use("/events", eventRoutes);
 app.use("/teams", teamRoutes);
 app.use("/invites", invitationRoutes);

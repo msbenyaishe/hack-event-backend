@@ -101,3 +101,36 @@ exports.logoutMember = (req, res) => {
   });
 
 };
+
+exports.updateMemberProfile = async (req, res) => {
+  const { first_name, last_name, portfolio, password } = req.body;
+  if (!req.user || req.user.role === 'admin') {
+     return res.status(403).json({ error: "Only members can update their profile via this endpoint" });
+  }
+
+  const userId = req.user.id;
+  
+  try {
+    let query = "UPDATE members SET first_name=?, last_name=?, portfolio=? WHERE id=?";
+    let params = [first_name || '', last_name || '', portfolio || '', userId];
+    
+    if (password) {
+      const saltRounds = 10;
+      const password_hash = await bcrypt.hash(password, saltRounds);
+      query = "UPDATE members SET first_name=?, last_name=?, portfolio=?, password_hash=? WHERE id=?";
+      params = [first_name || '', last_name || '', portfolio || '', password_hash, userId];
+    }
+    
+    await pool.query(query, params);
+    
+    // Fetch updated user
+    const [rows] = await pool.query(
+      "SELECT id, email, first_name, last_name, portfolio, role, event_id, team_id FROM members WHERE id = ?",
+      [userId]
+    );
+    res.json({ message: "Profile updated successfully", user: rows[0] });
+  } catch (err) {
+    console.error("[UPDATE PROFILE ERROR]", err);
+    res.status(500).json({ error: err.message });
+  }
+};
