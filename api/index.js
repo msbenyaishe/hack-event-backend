@@ -76,6 +76,7 @@ const sessionPool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  connectionLimit: 1, // Minimize concurrent connection drain per cold start
   ssl: { rejectUnauthorized: false } // Common requirement for remote DBs
 });
 
