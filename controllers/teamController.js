@@ -48,16 +48,17 @@ exports.createTeam = async (req, res) => {
       return res.status(400).json({ error: "Team name already exists in this event" });
     }
 
-    // Optional: Max teams check (as per existing logic, but maybe less critical than role)
+    // Optional: Max teams check
+    const [eventRows] = await pool.query("SELECT max_leaders FROM events WHERE id=?", [event_id]);
+    const max_leaders = eventRows.length > 0 ? (eventRows[0].max_leaders || 4) : 4;
+
     const [countRows] = await pool.query(
       "SELECT COUNT(*) as count FROM teams WHERE event_id=?",
       [event_id]
     );
 
-    if (countRows[0].count >= 100) { // Increased limit or remove it if not needed, instructions didn't specify a limit
-       // User didn't specify a limit, but old code had 4. Let's keep a reasonable high one or remove.
-       // The user said: "the only condition ... is to be a leader, that's it, nothing else."
-       // So I should probably remove the limit or keep it very high.
+    if (countRows[0].count >= max_leaders) { 
+       return res.status(400).json({ error: `Maximum number of teams (${max_leaders}) reached for this event` });
     }
 
     // create team
@@ -350,13 +351,6 @@ exports.addMemberToTeam = async (req, res) => {
     const { team_id, memberId } = req.body;
     if (!team_id || !memberId) return res.status(400).json({ error: "team_id and memberId are required" });
 
-    // 1. Check team capacity
-    const [teamMembers] = await pool.query("SELECT COUNT(*) as count FROM members WHERE team_id = ?", [team_id]);
-    if (teamMembers[0].count >= 5) {
-      return res.status(400).json({ error: "Team is already full (max 5 members)" });
-    }
-
-    // 2. Check if member is available and in the same event
     const [teamRows] = await pool.query("SELECT event_id FROM teams WHERE id = ?", [team_id]);
     const [memberRows] = await pool.query("SELECT event_id, team_id FROM members WHERE id = ?", [memberId]);
 
@@ -364,12 +358,23 @@ exports.addMemberToTeam = async (req, res) => {
       return res.status(404).json({ error: "Team or Member not found" });
     }
 
-    if (memberRows[0].event_id !== teamRows[0].event_id) {
+    const eventId = teamRows[0].event_id;
+
+    if (memberRows[0].event_id !== eventId) {
       return res.status(400).json({ error: "Member must be in the same event as the team" });
     }
 
     if (memberRows[0].team_id !== null) {
       return res.status(400).json({ error: "Member is already in a team" });
+    }
+
+    // Dynamic capacity check
+    const [eventRows] = await pool.query("SELECT max_team_members FROM events WHERE id = ?", [eventId]);
+    const maxCapacity = eventRows.length > 0 ? (eventRows[0].max_team_members || 5) : 5;
+
+    const [teamMembers] = await pool.query("SELECT COUNT(*) as count FROM members WHERE team_id = ?", [team_id]);
+    if (teamMembers[0].count >= maxCapacity) {
+      return res.status(400).json({ error: `Team is already full (max ${maxCapacity} members)` });
     }
 
     // 3. Add to team

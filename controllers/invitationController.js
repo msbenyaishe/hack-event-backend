@@ -56,7 +56,7 @@ exports.joinAsLeader = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    const max_leaders = 4; // Strictly 4 teams as per requirements
+    const max_leaders = eventRows[0].max_leaders || 4;
 
     const [leaderCountRows] = await pool.query(
         "SELECT COUNT(*) as count FROM members WHERE event_id=? AND role='leader'",
@@ -64,7 +64,7 @@ exports.joinAsLeader = async (req, res) => {
     );
 
     if (leaderCountRows[0].count >= max_leaders) {
-        return res.status(400).json({ error: "Maximum number of teams (4) reached for this event" });
+        return res.status(400).json({ error: `Maximum number of teams (${max_leaders}) reached for this event` });
     }
 
     try {
@@ -177,7 +177,7 @@ exports.joinTeam = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    const max_team_members = 5; // Strictly 5 members per team as per requirements
+    const max_team_members = eventRows[0].max_team_members || 5;
 
     const [memberCountRows] = await pool.query(
         "SELECT COUNT(*) as count FROM members WHERE team_id=?",
@@ -185,7 +185,7 @@ exports.joinTeam = async (req, res) => {
     );
 
     if (!memberCountRows || memberCountRows.length === 0 || memberCountRows[0].count >= max_team_members) {
-        return res.status(400).json({ error: "Maximum number of members (5) reached for this team or error counting members" });
+        return res.status(400).json({ error: `Maximum number of members (${max_team_members}) reached for this team or error counting members` });
     }
 
     await pool.query(
